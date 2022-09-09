@@ -81,11 +81,33 @@ dependencies:
 	$(DOCKER_EXEC_WRAPPER) poetry install
 
 
-# Sets up development environment
-.PHONY: setup
-setup: teardown docker-start lock dependencies
+.PHONY: git-setup
+git-setup:
 	$(DOCKER_EXEC_WRAPPER) git tidy --template -o .gitcommit.tpl
 	$(DOCKER_EXEC_WRAPPER) git config --local commit.template .gitcommit.tpl
+
+
+# Sets up a conda development environment
+.PHONY: conda-create
+conda-create:
+	-conda env create -f environment.yml --force
+	$(DOCKER_EXEC_WRAPPER) poetry config virtualenvs.create false --local
+	-psql postgres -c "CREATE USER postgres;"
+	-psql postgres -c "ALTER USER postgres SUPERUSER;"
+	-psql postgres -c "CREATE DATABASE ${MODULE_NAME}_local OWNER postgres;"
+	-psql postgres -c "GRANT ALL PRIVILEGES ON DATABASE ${MODULE_NAME}_local to postgres;"
+
+
+# Sets up a conda development environment
+.PHONY: conda-setup
+conda-setup: DOCKER_EXEC_WRAPPER=conda run -n django-pghistory --no-capture-output
+conda-setup: conda-create lock dependencies git-setup
+	$(DOCKER_EXEC_WRAPPER) python manage.py migrate
+
+
+# Sets up development environment
+.PHONY: setup
+setup: teardown docker-start lock dependencies git-setup
 
 
 # Run a shell
@@ -166,4 +188,4 @@ format:
 # Spin down docker resources
 .PHONY: teardown
 teardown:
-	$(DOCKER_CMD)-compose down
+	$(DOCKER_CMD)-compose down --remove-orphans

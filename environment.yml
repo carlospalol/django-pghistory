@@ -1,0 +1,10 @@
+name: django-pghistory
+channels:
+  - conda-forge
+dependencies:
+  - python==3.10
+  - pip
+  - poetry
+variables:
+  DATABASE_URL: "postgres://postgres@localhost:5432/pghistory_local"
+  DOCKER_EXEC_WRAPPER: ""
