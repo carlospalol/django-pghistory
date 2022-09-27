@@ -12,6 +12,13 @@ import pghistory.core
 import pghistory.tests.models as test_models
 
 
+def test_get_event_model(mocker):
+    patched_create_event_model = mocker.patch("pghistory.core.create_event_model", autospec=True)
+
+    pghistory.core.get_event_model(test_models.SnapshotModel)
+    patched_create_event_model.assert_called_once_with(test_models.SnapshotModel)
+
+
 @pytest.mark.django_db
 def test_denorm_context_tracking():
     """Test denormalized context tracking"""

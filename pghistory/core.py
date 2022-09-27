@@ -491,7 +491,7 @@ def get_event_model(*args, **kwargs):
         " 'create_event_model' instead.",
         DeprecationWarning,
     )
-    return create_event(*args, **kwargs)
+    return create_event_model(*args, **kwargs)
 
 
 def ProxyField(proxy, field):
@@ -504,8 +504,8 @@ def ProxyField(proxy, field):
             the resulting value
 
     """
-    if not isinstance(field, models.Field):
-        raise TypeError(f'"{field} is not a Django model Field instace')
+    if not isinstance(field, models.Field):  # pragma: no cover
+        raise TypeError(f'"{field}" is not a Django model Field instace')
 
     field.pgh_proxy = proxy
     return field

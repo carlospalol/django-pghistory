@@ -302,7 +302,7 @@ class EventsQueryCompiler(SQLCompiler):
         proxy_fields = []
         for field in self.query.model._meta.fields:
             if hasattr(field, "pgh_proxy"):
-                if not field.pgh_proxy.startswith("pgh_context__"):
+                if not field.pgh_proxy.startswith("pgh_context__"):  # pragma: no cover
                     raise RuntimeError(
                         "Proxy fields on Events models can only proxy the pgh_context field."
                         " E.g. pgh_context__url"

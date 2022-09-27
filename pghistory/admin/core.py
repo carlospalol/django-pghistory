@@ -35,7 +35,7 @@ class MethodFilter(admin.SimpleListFilter):
         obj = _get_obj(obj)
         if obj and self.value() == "tracks":
             queryset = queryset.tracks(obj)
-        elif obj and self.value() == "references":
+        elif obj and self.value() == "references":  # pragma: no branch
             queryset = queryset.references(obj)
 
         return queryset
@@ -118,7 +118,7 @@ class DynamicFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         if self.parameter_name in request.GET:
             return [(request.GET[self.parameter_name], request.GET[self.parameter_name])]
-        else:
+        else:  # pragma: no cover
             return []
 
 
