@@ -1,59 +1,98 @@
 django-pghistory
-=================
+================
 
-``django-pghistory`` provides automated and customizable history
-tracking for Django models using
-`Postgres triggers <https://www.postgresql.org/docs/12/sql-createtrigger.html>`__.
-Users can configure a number of event trackers to snapshot every model
-change or to fire specific events when certain changes occur in the database.
+``django-pghistory`` tracks changes to your Django models
+using `Postgres triggers <https://www.postgresql.org/docs/current/sql-createtrigger.html>`__.
+It offers several advantages over other apps:
 
-In contrast with other Django auditing and history tracking apps
-(seen `here <https://djangopackages.org/grids/g/model-audit/>`__),
-``django-pghistory`` has the following advantages:
+1. No base models to inherit, no signal handlers, and no custom save methods.
+   All changes are reliably tracked, including bulk methods.
+2. Snapshot all changes to your models, create conditional event trackers, or only
+   track the fields you care about.
+3. Changes are stored in structured event tables that mirror your models. No JSON, and you
+   can easily query events in your application.
+4. Changes can be grouped togher with additional context attached, such as the logged-in
+   user. The middleware can do this automatically.
 
-1. No instrumentation of model and queryset methods in order to properly
-   track history. After configuring your model, events will be tracked
-   automatically with no other changes to code. In contrast with
-   apps like
-   `django-reversion <https://django-reversion.readthedocs.io/en/stable/>`__,
-   it is impossible for code to accidentally bypass history tracking, and users
-   do not have to use a specific model/queryset interface to ensure history
-   is correctly tracked.
-2. Bulk updates and all other modifications to the database that do not fire
-   Django signals will still be properly tracked.
-3. Historical event modeling is completely controlled by the user and kept
-   in sync with models being tracked. There are no cumbersome generic foreign
-   keys and little dependence on unstructured JSON fields for tracking changes,
-   making it easier to use the historical events in your application (and
-   in a performant manner).
-4. Changes to multiple objects in a request (or any level of granularity)
-   can be grouped together under the same context. Although history tracking
-   happens in Postgres triggers, application code can still attach metadata
-   to historical events, such as the URL of the request, leading to a more
-   clear and useful audit trail.
+``django-pghistory`` has a number of ways in which you can configure tracking models
+for your application's needs, especially for performance and scale. An admin integration
+is included out of the box too.
 
-As mentioned, ``django-pghistory`` is built on top of
-`Postgres triggers <https://www.postgresql.org/docs/12/sql-createtrigger.html>`__,
-meaning that historical event tracking happens at the database level.
-Because of this, history tracking data is 100% reliable and not susceptible
-to race conditions.
+Quick Start
+-----------
 
-Along with this, ``django-pghistory`` provides the ability for users to
-make modeling decisions about how history is tracked that best suit their
-application needs. For example,
-`pghistory.track` allows one to track events to single fields, a combination
-of fields, or entire model updates only when relevant fields are updated
-or when conditions in the database hold true.
+Decorate your model with `pghistory.track`. For example:
 
-Although ``django-pghistory`` provides default history modeling out
-of the box for various scenarios, users have the ability to extend and
-customize models to suit their needs.
+.. code-block:: python
 
-To get started, go to the :ref:`tutorial`. The tutorial covers how to
-set up and configure automated event tracking in your application.
+    import pghistory
 
-Also be sure to check out
-:ref:`extras` for information about extra utilities in ``django-pghistory``.
-This section covers some of the additional ways that one can access
-and aggregate event history. It also shows examples of how one can integrate
-history into the Django admin in place of it's default history pages.
+
+	@pghistory.track(pghistory.Snapshot("snapshot"))
+	class TrackedModel(models.Model):
+		int_field = models.IntegerField()
+		text_field = models.TextField()
+
+
+Above we've registered a `pghistory.Snapshot` event tracker to ``TrackedModel``.
+This event tracker stores every change in a dynamically-created
+event model that mirrors fields in ``TrackedModel``.
+
+Run ``python manage.py makemigrations`` followed by ``migrate`` and
+*voila*, every change to ``TrackedModel`` is now stored. This includes bulk
+methods and even changes that happen in raw SQL. For example:
+
+.. code-block:: python
+
+    from myapp.models import TrackedModel
+
+    # Even though we didn't declare TrackedModelEvent, django-pghistory
+    # creates it for us in our app
+    from myapp.models import TrackedModelEvent
+
+
+    m = TrackedModel.objects.create(int_field=1, text_field="hello")
+    m.int_field = 2
+    m.save()
+
+    print(TrackedModelEvent.objects.values("pgh_obj", "int_field"))
+
+    > [{'pgh_obj': 1, 'int_field': 1}, {'pgh_obj': 1, 'int_field': 2}]
+
+Above we printed the ``pgh_obj`` field, which is a special foreign key to the tracked
+object. There are a few other special ``pgh_`` fields that we'll discuss later.
+
+``django-pghistory`` can conditionally track changes, and it can also limit snapshots to
+a subset of fields. For example, here we've set a condition to only snapshot when new version of
+``int_field`` is 3. We've also modified the event model so that it
+only snapshots ``int_field``.
+
+.. code-block:: python
+
+    import pghistory
+	import pgtrigger
+
+
+	@pghistory.track(
+		pghistory.Snapshot("int_field_is_three", condition=pgtrigger.Q(new__int_field=3),
+		fields=["int_field"]
+	)
+	class TrackedModel(models.Model):
+		int_field = models.IntegerField()
+		text_field = models.TextField()
+
+Changes to ``text_field`` are ignored and won't trigger snapshots. Similarly, snapshots
+will only be made when ``int_field`` equals three.
+
+We used a ``Q`` object from `django-pgtrigger <https://github.com/Opus10/django-pgtrigger>`__
+to express our condition. This is because event trackers are installed as triggers in the
+database using ``django-pgtrigger``.
+
+Compatibility
+~~~~~~~~~~~~~
+
+``django-pghistory`` is compatible with Python 3.7 -- 3.10, Django 2.2 -- 4.1, and Postgres 10 -- 14.
+
+Next Steps
+----------
+
