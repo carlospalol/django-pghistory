@@ -90,7 +90,7 @@ model looks like this:
         pgh_obj = models.ForeignKey(TestModel, on_delete=models.DO_NOTHING, related_name='event')
         pgh_label = models.TextField()
         pgh_context = models.ForeignKey('pghistory.Context', null=True, on_delete=models.DO_NOTHING, related_name='+')
-        pgh_created_at = models.DatetimeField(auto_now_add=True)
+        pgh_created_at = models.DateTimeField(auto_now_add=True)
 
         id = models.IntegerField()
         int_field = models.IntegerField()
