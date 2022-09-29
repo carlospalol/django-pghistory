@@ -668,7 +668,6 @@ def create_event(obj, *, label, using="default"):
 
     # Django <= 2.2 does not support returning fields from a bulk create,
     # which requires us to fetch fields again to populate the context
-    # NOTE (@wesleykendall): We will eventually test multiple Django versions
     if isinstance(vals, int):  # pragma: no cover
         return event_model.objects.get(pgh_id=vals)
     else:

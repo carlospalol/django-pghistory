@@ -229,7 +229,7 @@ class ObjForeignKey(ForeignKey):
     def __init__(
         self, *, related_name=constants.inherit, related_query_name=constants.inherit, **kwargs
     ):
-        # Note: We will be changing the deafult object field to nullable with on_delete=SET_NULL
+        # Note: We will be changing the default object field to nullable with on_delete=SET_NULL
         # in version 3. related_name will also default to "+"
         super().__init__(
             related_name=related_name, related_query_name=related_query_name, **kwargs

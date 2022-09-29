@@ -1,7 +1,7 @@
-.. _package:
+.. _module:
 
-Package
-=======
+Module
+======
 
 pghistory
 ---------

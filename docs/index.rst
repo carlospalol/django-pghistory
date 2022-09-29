@@ -11,12 +11,14 @@ It offers several advantages over other apps:
    track the fields you care about.
 3. Changes are stored in structured event tables that mirror your models. No JSON, and you
    can easily query events in your application.
-4. Changes can be grouped togher with additional context attached, such as the logged-in
+4. Changes can be grouped together with additional context attached, such as the logged-in
    user. The middleware can do this automatically.
 
 ``django-pghistory`` has a number of ways in which you can configure tracking models
-for your application's needs, especially for performance and scale. An admin integration
+for your application's needs and for performance and scale. An admin integration
 is included out of the box too.
+
+.. _quick_start:
 
 Quick Start
 -----------
@@ -27,11 +29,10 @@ Decorate your model with `pghistory.track`. For example:
 
     import pghistory
 
-
-	@pghistory.track(pghistory.Snapshot("snapshot"))
-	class TrackedModel(models.Model):
-		int_field = models.IntegerField()
-		text_field = models.TextField()
+    @pghistory.track(pghistory.Snapshot("snapshot"))
+    class TrackedModel(models.Model):
+        int_field = models.IntegerField()
+        text_field = models.TextField()
 
 
 Above we've registered a `pghistory.Snapshot` event tracker to ``TrackedModel``.
@@ -50,7 +51,6 @@ methods and even changes that happen in raw SQL. For example:
     # creates it for us in our app
     from myapp.models import TrackedModelEvent
 
-
     m = TrackedModel.objects.create(int_field=1, text_field="hello")
     m.int_field = 2
     m.save()
@@ -62,34 +62,14 @@ methods and even changes that happen in raw SQL. For example:
 Above we printed the ``pgh_obj`` field, which is a special foreign key to the tracked
 object. There are a few other special ``pgh_`` fields that we'll discuss later.
 
-``django-pghistory`` can conditionally track changes, and it can also limit snapshots to
-a subset of fields. For example, here we've set a condition to only snapshot when new version of
-``int_field`` is 3. We've also modified the event model so that it
-only snapshots ``int_field``.
-
-.. code-block:: python
-
-    import pghistory
-	import pgtrigger
-
-
-	@pghistory.track(
-		pghistory.Snapshot("int_field_is_three", condition=pgtrigger.Q(new__int_field=3),
-		fields=["int_field"]
-	)
-	class TrackedModel(models.Model):
-		int_field = models.IntegerField()
-		text_field = models.TextField()
-
-Changes to ``text_field`` are ignored and won't trigger snapshots. Similarly, snapshots
-will only be made when ``int_field`` equals three.
-
-We used a ``Q`` object from `django-pgtrigger <https://github.com/Opus10/django-pgtrigger>`__
-to express our condition. This is because event trackers are installed as triggers in the
-database using ``django-pgtrigger``.
+``django-pghistory`` can track a subset of fields and conditionally store events
+based on specific field transitions. Users can also store free-form context
+from the application that's referenced by the event model, all with no additional
+database queries. See the next steps below on how to dive deeper and configure it
+for your use case.
 
 Compatibility
-~~~~~~~~~~~~~
+-------------
 
 ``django-pghistory`` is compatible with Python 3.7 -- 3.10, Django 2.2 -- 4.1, and Postgres 10 -- 14.
 
